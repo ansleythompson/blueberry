@@ -2,8 +2,6 @@ Thanks to Mario Bălănică for the work enabling UEFI support on the Raspberry 
 
 This fork remaps pinctrl for the D0 revision of the BCM2712, ensuring newer Pi 5 boards boot correctly with UEFI. There is currently a known framebuffer issue affecting the UEFI menu and some operating systems on these models. I’ve reported this issue to the Raspberry Pi Foundation, and they have confirmed it will be addressed in their next major EEPROM update. As of yesterday, the EEPROM under the "Latest" header should fix the framebuffer issue.  I will add instructions in Issue #7.
 
-As a temporary measure, I’ve implemented a fix so the UEFI menu displays an image, but this does not fully resolve the underlying issue. Some operating systems will function without the framebuffer fix, but others require you to set framebuffer_depth=24 in your config.txt. Without this, or until the EEPROM update is available, you may encounter display artifacts or a black screen.
-
 My continued involvement in this project depends on community participation. I’m motivated to improve ACPI compatibility and other features if others contribute, but won’t be able to maintain or add features alone.
 
 Dt-bindings are being released for the RP1 within the coming months so we may be able to get ethernet and some other features working.  I have a CM5 and I would eventually like to get eMMC to work properly, but for now CM5 users should boot from NVME or USB.
