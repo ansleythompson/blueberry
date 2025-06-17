@@ -1,6 +1,8 @@
 Thanks to Mario Bălănică for the work enabling UEFI support on the Raspberry Pi 5. This project aims to provide UEFI access for users with D0 models—including the 16 GB, 2 GB, and other recently manufactured variants—as well as all Compute Modules.
 
-This fork remaps pinctrl for the D0 revision of the BCM2712, ensuring newer Pi 5 boards boot correctly with UEFI. There is currently a known framebuffer issue affecting the UEFI menu and some operating systems on these models. I’ve reported this issue to the Raspberry Pi Foundation, and they have confirmed it will be addressed in their next major EEPROM update. As of yesterday, the EEPROM under the "Latest" header should fix the framebuffer issue.  I will add instructions in Issue #7.
+This fork remaps pinctrl for the D0 revision of the BCM2712, ensuring newer Pi 5 boards boot correctly with UEFI. There is currently a known framebuffer issue affecting the UEFI menu and some operating systems on these models. I’ve reported this issue to the Raspberry Pi Foundation, and they have confirmed it will be addressed in their next major EEPROM update. 
+
+UPDATE:  Upgrade your system in Raspberry Pi OS or manually to the 6/9/25 EEPROM to avoid framebuffer issues.
 
 My continued involvement in this project depends on community participation. I’m motivated to improve ACPI compatibility and other features if others contribute, but won’t be able to maintain or add features alone.
 
