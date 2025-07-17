@@ -9,8 +9,8 @@
 [submodule "edk2-platforms"]
 	path = edk2-platforms
 	url = https://github.com/NumberOneGit/edk2-platforms.git
-	branch = tester
+	branch = master
 [submodule "edk2-non-osi"]
 	path = edk2-non-osi
-	url = https://github.com/tianocore/edk2-non-osi.git
+	url = https://github.com/NumberOneGit/edk2-non-osi.git
 	branch = master
