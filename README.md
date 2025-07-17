@@ -1,5 +1,3 @@
-# WOR Fork
-Look at [WOR Repo](https://github.com/NumberOneGit/rpi5-uefi) for details.
 # Building
 This process assumes a Linux machine. On Windows, use WSL.
 
@@ -28,6 +26,9 @@ This process assumes a Linux machine. On Windows, use WSL.
    Append `--help` for more details.
 
 If you get build errors, it is very likely that you're still missing some dependencies. The list of packages above is not complete and depending on the distro you may need to install additional ones. In most cases, looking up the error messages on the internet will point you at the right packages.
+
+## WOR Fork
+Look at [WOR Repo](https://github.com/NumberOneGit/rpi5-uefi) for details.
 
 ## Licenses
 Most files are licensed under the default EDK2 license, [BSD-2-Clause-Patent](https://github.com/tianocore/edk2/blob/master/License.txt).
