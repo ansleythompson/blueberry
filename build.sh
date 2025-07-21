@@ -58,7 +58,7 @@ elif [ ${MACHINE_TYPE} == 'amd64' ]; then
 fi
 
 if [ ${MACHINE_TYPE} != 'aarch64' ]; then
-    export CROSS_COMPILE="${CROSS_COMPILE:-aarch64-none-elf-}"
+    export CROSS_COMPILE="${CROSS_COMPILE:-aarch64-linux-gnu-}"
 fi
 
 #
@@ -72,7 +72,7 @@ make \
     RPI3_PRELOADED_DTB_BASE=0x3E0000 \
     SUPPORT_VFP=1 \
     SMC_PCI_SUPPORT=1 \
-    ENABLE_VHE=1 \
+    ENABLE_FEAT_VHE=1 \
     DEBUG=${DEBUG} \
     all \
     ${TFA_FLAGS} \
