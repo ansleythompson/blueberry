@@ -12,3 +12,5 @@ pub extern "efiapi" fn efi_main() -> Status {
     }
     Status::SUCCESS
 }
+
+// , path = "MsCorePkg/Crates/RustBootServicesAllocatorDxe"
