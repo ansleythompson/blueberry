@@ -1,17 +1,21 @@
 # Makefile for Rust UEFI UART Driver
 
-M ?= .
+M ?= build-tool
 DRIVER_NAME = uart_hello_driver
 TARGET = aarch64-unknown-uefi
 OUTPUT_DIR = output
 EDK2_OUTPUT_DIR = Platform/RaspberryPi/RPi5/Drivers/UartHelloDriver
 
-ifeq ($(M), .)
-	SRC_DIR = .
+ifeq ($(M), build-tool)
+	SRC_DIR = build-tool
 else
 	SRC_DIR = $(M)
 	DRIVER_NAME = $(SRC_DIR)
 endif
+
+export RUSTFLAGS := -C link-arg=-subsystem:efi_boot_service_driver \
+                   -C link-arg=-entry:efi_main \
+                   -C link-arg=-Map=driver.map
 
 # Default target
 .PHONY: all
@@ -22,20 +26,13 @@ $(OUTPUT_DIR)/$(DRIVER_NAME).efi: $(SRC_DIR)/src/main.rs $(SRC_DIR)/Cargo.toml .
 	@echo "Building Rust UEFI driver..."
 	@rustup target add $(TARGET) 2>/dev/null || true
 	cd $(SRC_DIR) && cargo build --target $(TARGET) --release
-	@mkdir -p $(EDK2_OUTPUT_DIR)
-	@cp $(SRC_DIR)/target/$(TARGET)/debug/$(DRIVER_NAME).efi $(EDK2_OUTPUT_DIR)/ 2>/dev/null || true
 	@echo "✅ Build complete"
 
 # Clean build artifacts
 .PHONY: clean
 clean:
-	@if [ "$(MODULE)" = "." ]; then \
-		cargo clean; \
-	else \
-		cd $(MODULE) && cargo clean; \
-	fi
 	rm -rf $(OUTPUT_DIR)
-	rm -f $(EDK2_OUTPUT_DIR)/$(DRIVER_NAME).efi
+	cd $(MODULE) && cargo clean;
 
 # Debug build
 .PHONY: build

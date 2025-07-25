@@ -92,4 +92,5 @@ pub unsafe fn log(s: &str) {
             uart_putc(b'\r');
         }
     }
+    uart_putc(b'\n');
 }
