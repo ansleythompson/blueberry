@@ -29,8 +29,12 @@ If you get build errors, it is very likely that you're still missing some depend
 
 # Build-Tool
 ## Build:
+```make
 make build: builds debug .efi image of driver housed in src/main.rs
+```
+```make
 make clean: cleans target directory
+```
 
 ## WOR Fork
 Look at [WOR Repo](https://github.com/NumberOneGit/rpi5-uefi) for details.
