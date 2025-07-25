@@ -1,4 +1,4 @@
-# Building
+# Build
 This process assumes a Linux machine. On Windows, use WSL.
 
 1. Install required packages:
@@ -26,6 +26,11 @@ This process assumes a Linux machine. On Windows, use WSL.
    Append `--help` for more details.
 
 If you get build errors, it is very likely that you're still missing some dependencies. The list of packages above is not complete and depending on the distro you may need to install additional ones. In most cases, looking up the error messages on the internet will point you at the right packages.
+
+# Build-Tool
+## Build:
+make build: builds debug .efi image of driver housed in src/main.rs
+make clean: cleans target directory
 
 ## WOR Fork
 Look at [WOR Repo](https://github.com/NumberOneGit/rpi5-uefi) for details.
