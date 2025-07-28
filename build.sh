@@ -4,7 +4,7 @@
 # Default variables
 #
 MODEL=5
-DEBUG=0
+DEBUG=1
 TFA_FLAGS=""
 EDK2_FLAGS=""
 
