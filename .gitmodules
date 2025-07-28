@@ -8,7 +8,7 @@
         branch = master
 [submodule "edk2-platforms"]
 	path = edk2-platforms
-	url = https://github.com/NumberOneGit/edk2-platforms.git
+	url = https://github.com/ansleythompson/edk2-platforms
 	branch = master
 [submodule "edk2-non-osi"]
 	path = edk2-non-osi
