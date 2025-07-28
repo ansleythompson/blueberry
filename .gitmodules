@@ -4,7 +4,7 @@
 	branch = rpi5
 [submodule "edk2"]
         path = edk2
-        url = https://github.com/NumberOneGit/edk2.git
+        url = https://github.com/ansleythompson/edk2.git
         branch = master
 [submodule "edk2-platforms"]
 	path = edk2-platforms

@@ -1,0 +1,13 @@
+[package]
+name = "Usbmenu"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]] # binary target
+name = "Menu"
+path = "src/main.rs"
+
+
+[dependencies]
+r-efi = "5.0.0"
+RustBootServicesAllocatorDxe = {git = "https://github.com/microsoft/mu_plus.git"}
