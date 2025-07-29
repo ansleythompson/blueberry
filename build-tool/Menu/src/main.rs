@@ -8,13 +8,14 @@ use core::panic::PanicInfo;
 use core::ptr::null_mut;
 use core::sync::atomic::{AtomicBool, Ordering};
 use r_efi::efi::{Guid, Status, Event};
+use r_efi::efi;
 use r_efi::protocols::simple_text_input::{InputKey, Protocol as SimpleTextInput};
 use r_efi::system::SystemTable;
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 mod uart_debug;
-
+use r_efi::protocols::graphics_output;
 
 // global varibales to store USB information. Static: Entire life of a program.
 static mut USB_MANUFACTURER: Option<String> = None;
@@ -32,7 +33,6 @@ static mut USB_DEVICE: u8 = 0;
 static mut USB_FUNCTION: u8 = 0;
 static mut USB_PORT: u8 = 0;
 static mut USB_INTERFACE: u8 = 0;
-
 
 // Match gUsbExtProtocolGuid from C header
 pub const G_USB_EXT_PROTOCOL_GUID: Guid = Guid::from_fields(
@@ -106,13 +106,8 @@ pub struct UsbExtProtocol {
 const TIMER_RELATIVE: u32 = 1;
 const SCAN_F4: u16 = 0xE; // it is a scan code for F4 0xE. 
 
-const GOP_GUID: Guid = Guid::from_fields(
-    0x9042a9de, 0x23dc, 0x4a38, 0x96, 0xfb,
-    &[0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a],
-);
-
 // it is a pointer to Graphics Protocol
-static mut GOP_PTR: *mut GraphicsOutput = core::ptr::null_mut();
+static mut gop_ptr: *mut graphics_output::Protocol = core::ptr::null_mut();
 // this is a pointer to a keyboard input protoocl
 static mut CON_IN: *mut SimpleTextInput = core::ptr::null_mut();
 // flag whether the box is visible (currently set to false)
@@ -210,19 +205,19 @@ extern "efiapi" fn on_usb_update(_event: r_efi::efi::Event, context: *mut core::
 // checks every 0.5 seconds whther the F4 key is pressed and if pressed call the blue box or else clear the box and toggle the flag
 extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core::ffi::c_void) {
     unsafe {
-        uart_debug::log("poll_keys callback triggered");
-        if CON_IN.is_null() || GOP_PTR.is_null() {
-            uart_debug::log("CON_IN or GOP_PTR is null. Exiting poll_keys.");
+        // uart_debug::log("poll_keys callback triggered");
+        if CON_IN.is_null() || gop_ptr.is_null() {
+            uart_debug::log("CON_IN or gop_ptr is null. Exiting poll_keys.");
             return;
         }
-        uart_debug::log("poll keys started");
+        // uart_debug::log("poll keys started");
         let con_in = CON_IN;
         // store the key that was pressed (we expect it to F4)
         let mut key: InputKey = core::mem::zeroed();
         // if pressed, fill the key
         let status = ((*con_in).read_key_stroke)(con_in, &mut key as *mut _);
         if status == Status::NOT_READY {
-            uart_debug::log("No key pressed at this time.");
+            // uart_debug::log("No key pressed at this time.");
             return;
         } else if status != Status::SUCCESS {
             uart_debug::log("Error reading key stroke."); //  Status = 0x{:X}", status.as_usize());
@@ -234,7 +229,7 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
         // if key.scan_code == SCAN_F4 {
         uart_debug::log("2 Key pressed: ScanCode");// = 0x{:X}", key.scan_code);
 
-            let gop = &mut *GOP_PTR;
+            let gop = &mut *gop_ptr;
             let mode = &*gop.mode;
             let info = &*mode.info;
             let fb = mode.frame_buffer_base as *mut u32;
@@ -253,11 +248,12 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
 fn draw_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
-    for y in 100..300 {
+    for y in 100..600 {
         for x in 100..1000 {
-            let idx = (y as usize * ppsl as usize + x as usize) as isize;
+            let idx = (y as usize * ppsl as usize + x as usize) as usize;
             unsafe {
-                *fb.offset(idx) = 0x000000FF; // Blue color
+                // *fb.offset(idx) = 0x000000FF; // Blue color
+                *fb.add(idx) = 0xFF0000FF;
             }
         }
     }
@@ -300,11 +296,21 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
 }
 
 fn clear_box(fb: *mut u32, ppsl: u32) {
-    for y in 100..600 {
-        for x in 100..1000 {
+    // Draw the blue box background
+    let mode_info = unsafe { &*(*(*gop_ptr).mode).info };
+
+    let width = mode_info.horizontal_resolution as usize;
+    let height = mode_info.vertical_resolution as usize;
+    let box_width = 400;
+    let box_height = 200;
+    let box_x = (width - box_width) / 2;
+    let box_y = (height - box_height) / 2;
+
+    for y in box_y..(box_y + box_height) {
+        for x in box_x..(box_x + box_width) {
             let idx = (y as usize * ppsl as usize + x as usize) as isize;
             unsafe {
-                *fb.offset(idx) = 0x00000000;
+                *fb.offset(idx) = 0xFF000000; // red color
             }
         }
     }
@@ -416,6 +422,35 @@ fn draw_text(fb: *mut u32, ppsl: u32, x: usize, y: usize, color: u32, text: &str
 }
 
 
+unsafe fn draw_blue_box_with_text(
+    gop: &mut graphics_output::Protocol,
+    mode_info: &graphics_output::ModeInformation,
+) -> Result<(), efi::Status> {
+    let framebuffer = (*gop.mode).frame_buffer_base as *mut u32;
+    let width = mode_info.horizontal_resolution as usize;
+    let height = mode_info.vertical_resolution as usize;
+    
+    // Define box dimensions (centered on screen)
+    let box_width = 400;
+    let box_height = 200;
+    let box_x = (width - box_width) / 2;
+    let box_y = (height - box_height) / 2;
+    
+    // Blue color (BGRA format for most UEFI systems)
+    let blue_color = 0xFF0000FF; // Blue with full alpha
+    // let white_color = 0xFFFFFFFF; // White for text background
+    
+    // Draw blue box
+    for y in box_y..(box_y + box_height) {
+        for x in box_x..(box_x + box_width) {
+            let pixel_offset = y * width + x;
+            *framebuffer.add(pixel_offset) = blue_color;
+        }
+    }
+    Ok(())
+}
+
+
 
 #[no_mangle]
 pub extern "efiapi" fn efi_main(
@@ -429,22 +464,28 @@ pub extern "efiapi" fn efi_main(
         uart_debug::log("Driver loaded and running in background.");
 
         // Locate GOP
-        let mut gop_guid = GOP_GUID;
-        let mut gop_ptr: *mut core::ffi::c_void = null_mut();
+        let mut gop_guid = graphics_output::PROTOCOL_GUID;
+        // let mut gop_ptr: *mut core::ffi::c_void = ptr::null_mut();
         let status = ((*bs).locate_protocol)(
             &mut gop_guid as *mut _,
             null_mut(),
-            &mut gop_ptr as *mut _,
+            // &mut gop_ptr as *mut _,
+            &mut gop_ptr as *mut _ as *mut *mut core::ffi::c_void,
         );
 
         if status != Status::SUCCESS || gop_ptr.is_null() {
             uart_debug::log("Failed to locate GOP.");
             return Status::NOT_FOUND.as_usize() as u64;
         }
-
+        
         uart_debug::log("Successfully located GOP. ");
         // Set global variables as poll keys can use them
-        GOP_PTR = gop_ptr as *mut GraphicsOutput;
+        // GOP_PTR = gop_ptr as *mut GraphicsOutput;
+        gop_ptr = &mut *gop_ptr;
+        // Get current mode info
+        let mode = &*(*gop_ptr).mode;
+        let mode_info = &*mode.info;
+        // let _ = draw_blue_box_with_text(gop_ptr, mode_info);
         CON_IN = (*system_table).con_in;
 
         // Create timer event
@@ -510,8 +551,6 @@ pub extern "efiapi" fn efi_main(
         } else {
             uart_debug::log("USB protocol not found.");
         }
-
-                
                 Status::SUCCESS.as_usize() as u64
             }
         }
