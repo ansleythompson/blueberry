@@ -10,4 +10,4 @@ path = "src/main.rs"
 
 [dependencies]
 r-efi = "5.0.0"
-#RustBootServicesAllocatorDxe = {git = "https://github.com/microsoft/mu_plus.git"}
+RustBootServicesAllocatorDxe = {git = "https://github.com/microsoft/mu_plus.git"}
