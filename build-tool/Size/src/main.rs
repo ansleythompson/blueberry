@@ -7,7 +7,8 @@ extern crate alloc;
 use core::panic::PanicInfo;
 use r_efi::efi::{Guid, Status};
 use r_efi::system::SystemTable;
-//mod uart_debug;
+use core::ptr::null_mut;
+mod uart_debug;
 
 pub const G_USB_EXT_PROTOCOL_GUID: Guid = Guid::from_fields(
     0x3a7f1e32,
@@ -24,26 +25,26 @@ pub extern "efiapi" fn efi_main(
     system_table: *const SystemTable,
 ) -> Status {
     unsafe {
-        //uart_debug::uart_init();
-        //uart_debug::log("ENTER: efi_main entry point");
+        uart_debug::uart_init();
+        uart_debug::log("ENTER: efi_main entry point");
         let bs = (*system_table).boot_services;
         rust_boot_services_allocator_dxe::GLOBAL_ALLOCATOR.init(bs);
 
+        let mut usb_ptr: *mut core::ffi::c_void = null_mut();
+        let mut usb_guid = G_USB_EXT_PROTOCOL_GUID;
         // Install Protocol
-
-
+        
         // Locate Protocol
-        /* 
         let status = ((*bs).locate_protocol)(
-            &G_USB_EXT_PROTOCOL_GUID as *const _,
+            &mut usb_guid as *mut _,
             null_mut(),
-            &mut protocol as *mut _,
+            &mut usb_ptr as *mut _,
         );
         if status != Status::SUCCESS {
             uart_debug::log("Failed to locate USB protocol.");
             return Status::NOT_FOUND;
         }
-*/
+
         // Create event
 
     }
