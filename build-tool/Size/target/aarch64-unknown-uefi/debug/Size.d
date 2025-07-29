@@ -1,0 +1,1 @@
+/home/movenshire/blueberry/build-tool/Size/target/aarch64-unknown-uefi/debug/Size.efi: /home/movenshire/blueberry/build-tool/Size/src/main.rs /home/movenshire/blueberry/build-tool/Size/src/uart_debug.rs
