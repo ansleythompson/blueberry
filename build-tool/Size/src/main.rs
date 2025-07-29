@@ -19,6 +19,12 @@ pub const G_USB_EXT_PROTOCOL_GUID: Guid = Guid::from_fields(
     &[0x19, 0x27, 0x11, 0x76, 0x18, 0x64],
 );
 
+extern "efiapi" fn evt_callback(_event: *mut core::ffi::c_void, _context: *mut core::ffi::c_void)->() {
+    unsafe {
+        uart_debug::log("Log callback");
+    }
+}
+
 #[no_mangle]
 pub extern "efiapi" fn efi_main(
     _image_handle: *const core::ffi::c_void,
@@ -33,7 +39,17 @@ pub extern "efiapi" fn efi_main(
         let mut usb_ptr: *mut core::ffi::c_void = null_mut();
         let mut usb_guid = G_USB_EXT_PROTOCOL_GUID;
         // Install Protocol
-        
+        let status = ((*bs).install_protocol_interface)(
+            null_mut(),
+            &mut usb_guid as *mut _,
+            0,
+            usb_ptr,
+        );
+        if status != Status::SUCCESS {
+            uart_debug::log("Failed to install USB protocol.");
+            return Status::NOT_FOUND;
+        }
+
         // Locate Protocol
         let status = ((*bs).locate_protocol)(
             &mut usb_guid as *mut _,
@@ -46,6 +62,18 @@ pub extern "efiapi" fn efi_main(
         }
 
         // Create event
+        let mut event: *mut core::ffi::c_void = null_mut();
+        let status = ((*bs).create_event)(
+            r_efi::efi::EVT_TIMER | r_efi::efi::EVT_NOTIFY_SIGNAL,
+            r_efi::efi::TPL_CALLBACK,
+            Some(evt_callback),
+            null_mut(),
+            &mut event as *mut _,
+        );
+        if status != Status::SUCCESS {
+            uart_debug::log("Failed to create event.");
+            return Status::NOT_FOUND;
+        }
 
     }
     Status::SUCCESS
