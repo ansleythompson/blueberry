@@ -224,10 +224,10 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
             return;
         }
 
-        uart_debug::log("1 Key pressed"); //ScanCode = 0x{:X}", key.scan_code);
+        // uart_debug::log("1 Key pressed"); //ScanCode = 0x{:X}", key.scan_code);
         if (key.scan_code & 0xFF) == SCAN_F4 {
         // if key.scan_code == SCAN_F4 {
-        uart_debug::log("2 Key pressed: ScanCode");// = 0x{:X}", key.scan_code);
+        // uart_debug::log("2 Key pressed: ScanCode");// = 0x{:X}", key.scan_code);
 
             let gop = &mut *gop_ptr;
             let mode = &*gop.mode;
@@ -248,8 +248,8 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
 fn draw_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
-    for y in 100..600 {
-        for x in 100..1000 {
+    for y in 100..250 {
+        for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as usize;
             unsafe {
                 // *fb.offset(idx) = 0x000000FF; // Blue color
@@ -299,18 +299,20 @@ fn clear_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
     let mode_info = unsafe { &*(*(*gop_ptr).mode).info };
 
-    let width = mode_info.horizontal_resolution as usize;
-    let height = mode_info.vertical_resolution as usize;
-    let box_width = 400;
-    let box_height = 200;
-    let box_x = (width - box_width) / 2;
-    let box_y = (height - box_height) / 2;
+    // let width = mode_info.horizontal_resolution as usize;
+    // let height = mode_info.vertical_resolution as usize;
+    // let box_width = 800; // 100..250, 100..600
+    // let box_height = 400;
+    // let box_x = (width - box_width) / 2;
+    // let box_y = (height - box_height) / 2;
 
-    for y in box_y..(box_y + box_height) {
-        for x in box_x..(box_x + box_width) {
+    // for y in box_y..(box_y + box_height) {
+    //     for x in box_x..(box_x + box_width) {
+    for y in 100..250 {
+        for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as isize;
             unsafe {
-                *fb.offset(idx) = 0xFF000000; // red color
+                *fb.offset(idx) = 0xFF000000;
             }
         }
     }
