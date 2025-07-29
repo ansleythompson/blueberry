@@ -3,9 +3,18 @@
 version = 4
 
 [[package]]
+name = "RustBootServicesAllocatorDxe"
+version = "0.1.0"
+source = "git+https://github.com/microsoft/mu_plus.git#291c217f68f6f2600b5e6274da1f7cd886034625"
+dependencies = [
+ "r-efi",
+]
+
+[[package]]
 name = "Size"
 version = "0.1.0"
 dependencies = [
+ "RustBootServicesAllocatorDxe",
  "r-efi",
 ]
 
