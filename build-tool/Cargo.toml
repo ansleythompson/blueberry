@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+r-efi = "5.3.0"
 uefi = "0.26"
 
 [profile.dev]

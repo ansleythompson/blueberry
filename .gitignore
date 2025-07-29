@@ -6,3 +6,6 @@ __pycache__/
 tags/
 .vscode/
 *.fd
+build-tool/output
+build-tool/target
+build-tool/*/target

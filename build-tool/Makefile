@@ -2,7 +2,7 @@
 
 M ?= .
 DRIVER_NAME = uart_hello_driver
-TARGET = aarch64-unknown-uefi
+TARGET ?= aarch64-unknown-uefi
 OUTPUT_DIR = output
 EDK2_OUTPUT_DIR = Platform/RaspberryPi/RPi5/Drivers/UartHelloDriver
 
