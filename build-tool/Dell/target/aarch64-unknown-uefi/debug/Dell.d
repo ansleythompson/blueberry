@@ -1,0 +1,1 @@
+/home/movenshire/blueberry/build-tool/Dell/target/aarch64-unknown-uefi/debug/Dell.efi: /home/movenshire/blueberry/build-tool/Dell/src/main.rs /home/movenshire/blueberry/build-tool/Dell/src/uart_debug.rs
