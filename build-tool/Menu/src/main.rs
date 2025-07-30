@@ -23,7 +23,7 @@ static mut USB_MANUFACTURER: Option<String> = None;
 static mut USB_PRODUCT: Option<String> = None;
 static mut USB_SERIAL: Option<String> = None;
 static USB_UPDATED: AtomicBool = AtomicBool::new(false);
-static mut USB_DEV_INFO_VEC: Option<Vec<DellUsbDevInfo>> = None;
+static mut USB_DEV_INFO_VEC: Option<Vec<DellUsbDevInfo>> =  core::prelude::v1::Some(Vec::new());
 
 // newly added variables or info hat we can print on blue screen (Take advise from MO & AS)
 static mut USB_VENDOR_ID: u16 = 0;
@@ -263,7 +263,8 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 fn draw_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
     // ------TEST----
-    let device_count = unsafe {USB_DEV_INFO_VEC.as_ref().map_or(1, |v| v.len()) };
+    let device_coun = unsafe {USB_DEV_INFO_VEC.as_ref().map_or(1, |v| v.len()) };
+    let device_count = device_coun - 3;
     let line_height = 170 ;
     let box_height = device_count * line_height + 35;
     for y in 100..box_height{
@@ -285,16 +286,13 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
             let mut all_info = String::from("USB Devices:\n");
             for (i, dev_info) in vec.iter().enumerate()
             {
+                if i >= 3 {
+
                 let manufacturer = utf16_cstr_to_string(&dev_info.manufacturer);
                 let product = utf16_cstr_to_string(&dev_info.product);
                 let serial = utf16_cstr_to_string(&dev_info.serial_number);
                 let dev_desc = &dev_info.device_descriptor;
                 let port_info = &dev_info.port_info;
-
-            
-        
-        // https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html
-   
         let info = format!(
                     "Device {}:\n\
                     Manufacturer: {}\n\
@@ -303,7 +301,7 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
                     Vendor ID: {:04X}, Product ID: {:04X}, Class: {:02X}\n\
                     Subclass: {:02X}, Bus: {}, Device: {}\n\
                     Port: {}, Interface: {}\n\n",
-                    i+1,
+                    i+1-3,
                     manufacturer,
                     product,
                     serial,
@@ -315,10 +313,9 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
                     port_info.device,
                     port_info.port,
                     port_info.interface
-
-
                 );
-                all_info.push_str(&info);
+                all_info.push_str(&info);}
+
             }
             all_info
         } else {
