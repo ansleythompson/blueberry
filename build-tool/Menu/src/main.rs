@@ -262,7 +262,14 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
 fn draw_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
-    for y in 100..1000 {
+    // ------TEST----
+    let device_count = unsafe {USB_DEV_INFO_VEC.as_ref().map_or(1, |v| v.len()) };
+    let line_height = 170 ;
+    let box_height = device_count * line_height + 35;
+    for y in 100..box_height{
+
+    // ----TEST END -----
+    // for y in 100..1000 {
         for x in 100..550 {
             let idx = (y as usize * ppsl as usize + x as usize) as usize;
             unsafe {
@@ -339,8 +346,8 @@ fn clear_box(fb: *mut u32, ppsl: u32) {
 
     // for y in box_y..(box_y + box_height) {
     //     for x in box_x..(box_x + box_width) {
-    for y in 100..250 {
-        for x in 100..600 {
+    for y in 100..1000 {
+        for x in 100..550 {
             let idx = (y as usize * ppsl as usize + x as usize) as isize;
             unsafe {
                 *fb.offset(idx) = 0xFF000000;
