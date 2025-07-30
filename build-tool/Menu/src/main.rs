@@ -16,12 +16,14 @@ use alloc::string::String;
 use alloc::string::ToString;
 mod uart_debug;
 use r_efi::protocols::graphics_output;
+use alloc::vec::Vec;
 
 // global varibales to store USB information. Static: Entire life of a program.
 static mut USB_MANUFACTURER: Option<String> = None;
 static mut USB_PRODUCT: Option<String> = None;
 static mut USB_SERIAL: Option<String> = None;
 static USB_UPDATED: AtomicBool = AtomicBool::new(false);
+static mut USB_DEV_INFO_VEC: Option<Vec<DellUsbDevInfo>> = None;
 
 // newly added variables or info hat we can print on blue screen (Take advise from MO & AS)
 static mut USB_VENDOR_ID: u16 = 0;
@@ -44,6 +46,7 @@ pub const G_USB_EXT_PROTOCOL_GUID: Guid = Guid::from_fields(
     &[0x19, 0x27, 0x11, 0x76, 0x18, 0x64],
 );
 
+#[derive(Clone)]
 #[repr(C)]
 pub struct PortInfo {
     pub interface: u8,
@@ -53,6 +56,7 @@ pub struct PortInfo {
     pub bus: u32,
 }
 
+#[derive(Clone)]
 #[repr(C)]
 pub struct UsbDeviceDescriptor {
     pub length: u8,
@@ -71,6 +75,7 @@ pub struct UsbDeviceDescriptor {
     pub num_configurations: u8,
 }
 
+#[derive(Clone)]
 #[repr(C)]
 pub struct UsbInterfaceDescriptor {
     pub length: u8,
@@ -84,6 +89,7 @@ pub struct UsbInterfaceDescriptor {
     pub interface: u8,
 }
 
+#[derive(Clone)]
 #[repr(C)]
 pub struct DellUsbDevInfo {
     pub signature: u32,
@@ -165,6 +171,14 @@ extern "efiapi" fn on_usb_update(_event: r_efi::efi::Event, context: *mut core::
             USB_PRODUCT = Some(utf16_cstr_to_string(&(*protocol).usb_dev_info.product));
             USB_SERIAL = Some(utf16_cstr_to_string(&(*protocol).usb_dev_info.serial_number));
             USB_UPDATED.store(true, Ordering::SeqCst);
+
+            if USB_DEV_INFO_VEC.is_none(){
+                USB_DEV_INFO_VEC = Some(Vec::new());
+            }
+
+            if let Some(vec) = USB_DEV_INFO_VEC.as_mut(){
+                vec.push((*protocol).usb_dev_info.clone());
+            }
 
             // newly added parameteres
             let dev_desc = &(*protocol).usb_dev_info.device_descriptor;
@@ -248,8 +262,8 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
 fn draw_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
-    for y in 100..250 {
-        for x in 100..600 {
+    for y in 100..1000 {
+        for x in 100..550 {
             let idx = (y as usize * ppsl as usize + x as usize) as usize;
             unsafe {
                 // *fb.offset(idx) = 0x000000FF; // Blue color
@@ -260,29 +274,46 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
 
     // Prepare the text to display
     let text = unsafe {
+        if let Some(vec) = USB_DEV_INFO_VEC.as_ref(){
+            let mut all_info = String::from("USB Devices:\n");
+            for (i, dev_info) in vec.iter().enumerate()
+            {
+                let manufacturer = utf16_cstr_to_string(&dev_info.manufacturer);
+                let product = utf16_cstr_to_string(&dev_info.product);
+                let serial = utf16_cstr_to_string(&dev_info.serial_number);
+                let dev_desc = &dev_info.device_descriptor;
+                let port_info = &dev_info.port_info;
+
+            
+        
         // https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html
-        if USB_UPDATED.load(core::sync::atomic::Ordering::SeqCst) {
-            format!(
-                    "USB Info:\n\
+   
+        let info = format!(
+                    "Device {}:\n\
                     Manufacturer: {}\n\
                     Product: {}\n\
                     Serial Number: {}\n\
                     Vendor ID: {:04X}, Product ID: {:04X}, Class: {:02X}\n\
                     Subclass: {:02X}, Bus: {}, Device: {}\n\
-                    Port: {}, Interface: {}",
-                    USB_MANUFACTURER.as_deref().unwrap_or(""),
-                    USB_PRODUCT.as_deref().unwrap_or(""),
-                    USB_SERIAL.as_deref().unwrap_or(""),
-                    USB_VENDOR_ID,
-                    USB_PRODUCT_ID,
-                    USB_CLASS,
-                    USB_SUBCLASS,
-                    USB_BUS,
-                    USB_DEVICE,
-                    USB_PORT,
-                    USB_INTERFACE
-                )
+                    Port: {}, Interface: {}\n\n",
+                    i+1,
+                    manufacturer,
+                    product,
+                    serial,
+                    dev_desc.id_vendor,
+                    dev_desc.id_product,
+                    dev_desc.device_class,
+                    dev_desc.device_sub_class,
+                    port_info.bus,
+                    port_info.device,
+                    port_info.port,
+                    port_info.interface
 
+
+                );
+                all_info.push_str(&info);
+            }
+            all_info
         } else {
             "Waiting for USB...".to_string()
         }
