@@ -266,12 +266,12 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
     let device_coun = unsafe {USB_DEV_INFO_VEC.as_ref().map_or(1, |v| v.len()) };
     let device_count = device_coun - 3;
     let line_height = 170 ;
-    let box_height = device_count * line_height + 35;
+    let box_height = device_count * line_height + 45;
     for y in 100..box_height{
 
     // ----TEST END -----
     // for y in 100..1000 {
-        for x in 100..550 {
+        for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as usize;
             unsafe {
                 // *fb.offset(idx) = 0x000000FF; // Blue color
@@ -324,7 +324,7 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
     };
 
     // Draw the text inside the box
-    draw_text(fb, ppsl, 120, 120, 0x00FFFFFF, &text); // White text
+    draw_text(fb, ppsl, 120, 120, 0xFFFFFFFF, &text); // White text
     unsafe {
         uart_debug::log("Blue box drawn with dynamic USB data.");
     }
@@ -344,7 +344,7 @@ fn clear_box(fb: *mut u32, ppsl: u32) {
     // for y in box_y..(box_y + box_height) {
     //     for x in box_x..(box_x + box_width) {
     for y in 100..1000 {
-        for x in 100..550 {
+        for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as isize;
             unsafe {
                 *fb.offset(idx) = 0xFF000000;
