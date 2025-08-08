@@ -1,0 +1,8 @@
+{
+    "packagePaths": [
+        "edk2",
+        "edk2-platforms"
+    ],
+    "dscPaths": [],
+    "buildDefines": []
+}
