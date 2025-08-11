@@ -16,14 +16,16 @@ use alloc::string::String;
 use alloc::string::ToString;
 mod uart_debug;
 use r_efi::protocols::graphics_output;
-use alloc::vec::Vec;
+use alloc::vec::Vec; // Vecor functionality
+
 
 // global varibales to store USB information. Static: Entire life of a program.
 static mut USB_MANUFACTURER: Option<String> = None;
 static mut USB_PRODUCT: Option<String> = None;
 static mut USB_SERIAL: Option<String> = None;
 static USB_UPDATED: AtomicBool = AtomicBool::new(false);
-static mut USB_DEV_INFO_VEC: Option<Vec<DellUsbDevInfo>> =  core::prelude::v1::Some(Vec::new());
+static mut USB_DEV_INFO_VEC: Option<Vec<DellUsbDevInfo>> = None;  // Vecor functionality
+
 
 // newly added variables or info hat we can print on blue screen (Take advise from MO & AS)
 static mut USB_VENDOR_ID: u16 = 0;
@@ -56,6 +58,7 @@ pub struct PortInfo {
     pub bus: u32,
 }
 
+
 #[derive(Clone)]
 #[repr(C)]
 pub struct UsbDeviceDescriptor {
@@ -75,6 +78,7 @@ pub struct UsbDeviceDescriptor {
     pub num_configurations: u8,
 }
 
+
 #[derive(Clone)]
 #[repr(C)]
 pub struct UsbInterfaceDescriptor {
@@ -88,6 +92,7 @@ pub struct UsbInterfaceDescriptor {
     pub interface_protocol: u8,
     pub interface: u8,
 }
+
 
 #[derive(Clone)]
 #[repr(C)]
@@ -172,11 +177,10 @@ extern "efiapi" fn on_usb_update(_event: r_efi::efi::Event, context: *mut core::
             USB_SERIAL = Some(utf16_cstr_to_string(&(*protocol).usb_dev_info.serial_number));
             USB_UPDATED.store(true, Ordering::SeqCst);
 
-            if USB_DEV_INFO_VEC.is_none(){
+            if USB_DEV_INFO_VEC.is_none() {
                 USB_DEV_INFO_VEC = Some(Vec::new());
             }
-
-            if let Some(vec) = USB_DEV_INFO_VEC.as_mut(){
+            if let Some(vec) = USB_DEV_INFO_VEC.as_mut() {
                 vec.push((*protocol).usb_dev_info.clone());
             }
 
@@ -196,21 +200,6 @@ extern "efiapi" fn on_usb_update(_event: r_efi::efi::Event, context: *mut core::
             USB_INTERFACE = port_info.interface;
 
             uart_debug::log("USB updated");
-
-        //     debugln!(
-        //         "USB updated: Manufacturer: {}, Product: {}, Serial Number: {}",
-        //         USB_MANUFACTURER.as_deref().unwrap_or(""),
-        //         USB_PRODUCT.as_deref().unwrap_or(""),
-        //         USB_SERIAL.as_deref().unwrap_or("")
-        //     );
-        //     debugln!(
-        //         "USB Descriptor: Vendor {:04X}, Product {:04X}, Class {:02X}, Subclass {:02X}",
-        //         USB_VENDOR_ID, USB_PRODUCT_ID, USB_CLASS, USB_SUBCLASS
-        // );
-        //     debugln!(
-        //         "Port Info: Bus {}, Device {}, Port {}, Interface {}",
-        //         USB_BUS, USB_DEVICE, USB_PORT, USB_INTERFACE
-        // );
 
         }
 }
@@ -240,8 +229,6 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
         // uart_debug::log("1 Key pressed"); //ScanCode = 0x{:X}", key.scan_code);
         if (key.scan_code & 0xFF) == SCAN_F4 {
-        // if key.scan_code == SCAN_F4 {
-        // uart_debug::log("2 Key pressed: ScanCode");// = 0x{:X}", key.scan_code);
 
             let gop = &mut *gop_ptr;
             let mode = &*gop.mode;
@@ -262,15 +249,7 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
 fn draw_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
-    // ------TEST----
-    let device_coun = unsafe {USB_DEV_INFO_VEC.as_ref().map_or(1, |v| v.len()) };
-    let device_count = device_coun - 3;
-    let line_height = 170 ;
-    let box_height = device_count * line_height + 45;
-    for y in 100..box_height{
-
-    // ----TEST END -----
-    // for y in 100..1000 {
+    for y in 100..250 {
         for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as usize;
             unsafe {
@@ -280,51 +259,40 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
         }
     }
 
-    // Prepare the text to display
-    let text = unsafe {
-        if let Some(vec) = USB_DEV_INFO_VEC.as_ref(){
-            let mut all_info = String::from("USB Devices:\n");
-            for (i, dev_info) in vec.iter().enumerate()
-            {
-                if i >= 3 {
-
-                let manufacturer = utf16_cstr_to_string(&dev_info.manufacturer);
-                let product = utf16_cstr_to_string(&dev_info.product);
-                let serial = utf16_cstr_to_string(&dev_info.serial_number);
-                let dev_desc = &dev_info.device_descriptor;
-                let port_info = &dev_info.port_info;
-        let info = format!(
-                    "Device {}:\n\
-                    Manufacturer: {}\n\
-                    Product: {}\n\
-                    Serial Number: {}\n\
-                    Vendor ID: {:04X}, Product ID: {:04X}, Class: {:02X}\n\
-                    Subclass: {:02X}, Bus: {}, Device: {}\n\
-                    Port: {}, Interface: {}\n\n",
-                    i+1-3,
-                    manufacturer,
-                    product,
-                    serial,
-                    dev_desc.id_vendor,
-                    dev_desc.id_product,
-                    dev_desc.device_class,
-                    dev_desc.device_sub_class,
-                    port_info.bus,
-                    port_info.device,
-                    port_info.port,
-                    port_info.interface
-                );
-                all_info.push_str(&info);}
-
-            }
-            all_info
-        } else {
-            "Waiting for USB...".to_string()
+let text = unsafe {
+    if let Some(vec) = USB_DEV_INFO_VEC.as_ref() {
+        let mut all_info = String::from("USB Devices:\n");
+        for (i, dev_info) in vec.iter().enumerate() {
+            let manufacturer = utf16_cstr_to_string(&dev_info.manufacturer);
+            let product = utf16_cstr_to_string(&dev_info.product);
+            let serial = utf16_cstr_to_string(&dev_info.serial_number);
+            let dev_desc = &dev_info.device_descriptor;
+            let port_info = &dev_info.port_info;
+            let info = format!(
+                "Device {}:\nManufacturer: {}\nProduct: {}\nSerial: {}\nVendor ID: {:04X}, Product ID: {:04X}, Class: {:02X}, Subclass: {:02X}\nBus: {}, Device: {}, Port: {}, Interface: {}\n\n",
+                i + 1,
+                manufacturer,
+                product,
+                serial,
+                dev_desc.id_vendor,
+                dev_desc.id_product,
+                dev_desc.device_class,
+                dev_desc.device_sub_class,
+                port_info.bus,
+                port_info.device,
+                port_info.port,
+                port_info.interface
+            );
+            all_info.push_str(&info);
         }
-    };
+        all_info
+    } else {
+        "Waiting for USB...".to_string()
+    }
+};
 
     // Draw the text inside the box
-    draw_text(fb, ppsl, 120, 120, 0xFFFFFFFF, &text); // White text
+    draw_text(fb, ppsl, 120, 120, 0x00FFFFFF, &text); // White text
     unsafe {
         uart_debug::log("Blue box drawn with dynamic USB data.");
     }
@@ -343,7 +311,7 @@ fn clear_box(fb: *mut u32, ppsl: u32) {
 
     // for y in box_y..(box_y + box_height) {
     //     for x in box_x..(box_x + box_width) {
-    for y in 100..1000 {
+    for y in 100..250 {
         for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as isize;
             unsafe {
@@ -475,8 +443,7 @@ unsafe fn draw_blue_box_with_text(
     
     // Blue color (BGRA format for most UEFI systems)
     let blue_color = 0xFF0000FF; // Blue with full alpha
-    // let white_color = 0xFFFFFFFF; // White for text background
-    
+
     // Draw blue box
     for y in box_y..(box_y + box_height) {
         for x in box_x..(box_x + box_width) {
@@ -486,8 +453,6 @@ unsafe fn draw_blue_box_with_text(
     }
     Ok(())
 }
-
-
 
 #[no_mangle]
 pub extern "efiapi" fn efi_main(
@@ -500,13 +465,11 @@ pub extern "efiapi" fn efi_main(
 
         uart_debug::log("Driver loaded and running in background.");
 
-        // Locate GOP
+        // Locate Graphics Output Protocol (GOP)
         let mut gop_guid = graphics_output::PROTOCOL_GUID;
-        // let mut gop_ptr: *mut core::ffi::c_void = ptr::null_mut();
         let status = ((*bs).locate_protocol)(
             &mut gop_guid as *mut _,
-            null_mut(),
-            // &mut gop_ptr as *mut _,
+            core::ptr::null_mut(),
             &mut gop_ptr as *mut _ as *mut *mut core::ffi::c_void,
         );
 
@@ -514,62 +477,26 @@ pub extern "efiapi" fn efi_main(
             uart_debug::log("Failed to locate GOP.");
             return Status::NOT_FOUND.as_usize() as u64;
         }
-        
-        uart_debug::log("Successfully located GOP. ");
-        // Set global variables as poll keys can use them
-        // GOP_PTR = gop_ptr as *mut GraphicsOutput;
+
+        uart_debug::log("Successfully located GOP.");
         gop_ptr = &mut *gop_ptr;
-        // Get current mode info
-        let mode = &*(*gop_ptr).mode;
-        let mode_info = &*mode.info;
-        // let _ = draw_blue_box_with_text(gop_ptr, mode_info);
+
+        // Set up console input
         CON_IN = (*system_table).con_in;
 
-        // Create timer event
-        uart_debug::log("Effort to start timer event.");
-        let mut event: *mut core::ffi::c_void = null_mut();
-        let status = ((*bs).create_event)(
-            r_efi::efi::EVT_TIMER | r_efi::efi::EVT_NOTIFY_SIGNAL,
-            r_efi::efi::TPL_CALLBACK,
-            Some(poll_keys),
-            null_mut(),
-            &mut event as *mut _,
-        );
-
-        if status != Status::SUCCESS {
-            uart_debug::log("Failed to create timer event.");
-            uart_debug::log("Failed to create timer event."); // Status = 0x{:X}", status.as_usize());
-            return status.as_usize() as u64;
-        }
-
-        uart_debug::log("Successfully set the timer event.");
-        // Set timer to fire every 0.5 seconds
-        let status = ((*bs).set_timer)(
-            event,
-            TIMER_RELATIVE,
-            500_000, // 0.5 seconds in 100ns units
-        );
-
-        uart_debug::log("Successfully set the timer event after every 0.5 secs");
-        if status != Status::SUCCESS {
-            uart_debug::log("Failed to set timer.");
-            return status.as_usize() as u64;
-        }
-
-        uart_debug::log("Polling for F4 key every 0.5s. Shell remains active.");
-        // Locate USB protocol
-        let mut usb_ptr: *mut core::ffi::c_void = null_mut();
+        // Locate USB protocol and set up USB event
+        let mut usb_ptr: *mut core::ffi::c_void = core::ptr::null_mut();
         let mut usb_guid = G_USB_EXT_PROTOCOL_GUID;
         let status = ((*bs).locate_protocol)(
             &mut usb_guid as *mut _,
-            null_mut(),
+            core::ptr::null_mut(),
             &mut usb_ptr as *mut _,
         );
 
         if status == Status::SUCCESS && !usb_ptr.is_null() {
             let usb_protocol = usb_ptr as *mut UsbExtProtocol;
 
-            let mut usb_event: r_efi::efi::Event = null_mut();
+            let mut usb_event: r_efi::efi::Event = core::ptr::null_mut();
             let status = ((*bs).create_event)(
                 r_efi::efi::EVT_NOTIFY_SIGNAL,
                 r_efi::efi::TPL_CALLBACK,
@@ -588,12 +515,152 @@ pub extern "efiapi" fn efi_main(
         } else {
             uart_debug::log("USB protocol not found.");
         }
-                Status::SUCCESS.as_usize() as u64
+
+        // Wait for key input using UEFI event
+        let wait_event = (*CON_IN).wait_for_key;
+
+        loop {
+            let mut index: usize = 0;
+            let mut events: [r_efi::efi::Event; 1] = [wait_event];
+            let status = ((*bs).wait_for_event)(1, events.as_mut_ptr(), &mut index);
+
+            if status != Status::SUCCESS {
+                uart_debug::log("Failed to wait for key event.");
+                continue;
+            }
+
+            let mut key: InputKey = core::mem::zeroed();
+            let status = ((*CON_IN).read_key_stroke)(CON_IN, &mut key);
+            if status == Status::SUCCESS && (key.scan_code & 0xFF) == SCAN_F4 {
+                let gop = &mut *gop_ptr;
+                let mode = &*gop.mode;
+                let info = &*mode.info;
+                let fb = mode.frame_buffer_base as *mut u32;
+                let ppsl = info.pixels_per_scan_line;
+
+                if BOX_VISIBLE {
+                    clear_box(fb, ppsl);
+                } else {
+                    draw_box(fb, ppsl);
+                }
+                BOX_VISIBLE = !BOX_VISIBLE;
             }
         }
+    }
+}
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
+
+
+
+
+
+
+
+// #[no_mangle]
+// pub extern "efiapi" fn efi_main(
+//     _image_handle: *const core::ffi::c_void,
+//     system_table: *const SystemTable,
+// ) -> u64 {
+//     unsafe {
+//         let bs = (*system_table).boot_services;
+//         rust_boot_services_allocator_dxe::GLOBAL_ALLOCATOR.init(bs);
+
+//         uart_debug::log("Driver loaded and running in background.");
+
+//         // Locate GOP
+//         let mut gop_guid = graphics_output::PROTOCOL_GUID;
+//         // let mut gop_ptr: *mut core::ffi::c_void = ptr::null_mut();
+//         let status = ((*bs).locate_protocol)(
+//             &mut gop_guid as *mut _,
+//             null_mut(),
+//             // &mut gop_ptr as *mut _,
+//             &mut gop_ptr as *mut _ as *mut *mut core::ffi::c_void,
+//         );
+
+//         if status != Status::SUCCESS || gop_ptr.is_null() {
+//             uart_debug::log("Failed to locate GOP.");
+//             return Status::NOT_FOUND.as_usize() as u64;
+//         }
+        
+//         uart_debug::log("Successfully located GOP. ");
+//         // Set global variables as poll keys can use them
+
+//         gop_ptr = &mut *gop_ptr;
+//         // Get current mode info
+//         let mode = &*(*gop_ptr).mode;
+//         let mode_info = &*mode.info;
+//         // let _ = draw_blue_box_with_text(gop_ptr, mode_info);
+//         CON_IN = (*system_table).con_in;
+
+
+//         // Create timer event
+//         uart_debug::log("Effort to start timer event.");
+//         let mut event: *mut core::ffi::c_void = null_mut();
+//         let status = ((*bs).create_event)(
+//             r_efi::efi::EVT_TIMER | r_efi::efi::EVT_NOTIFY_SIGNAL,
+//             r_efi::efi::TPL_CALLBACK,
+//             Some(poll_keys),
+//             null_mut(),
+//             &mut event as *mut _,
+//         );
+
+//         if status != Status::SUCCESS {
+//             uart_debug::log("Failed to create timer event.");
+//             uart_debug::log("Failed to create timer event."); // Status = 0x{:X}", status.as_usize());
+//             return status.as_usize() as u64;
+//         }
+
+//         uart_debug::log("Successfully set the timer event.");
+//         // Set timer to fire every 0.5 seconds
+//         let status = ((*bs).set_timer)(
+//             event,
+//             TIMER_RELATIVE,
+//             500_000, // 0.5 seconds in 100ns units
+//         );
+
+//         uart_debug::log("Successfully set the timer event after every 0.5 secs");
+//         if status != Status::SUCCESS {
+//             uart_debug::log("Failed to set timer.");
+//             return status.as_usize() as u64;
+//         }
+
+//         uart_debug::log("Polling for F4 key every 0.5s. Shell remains active.");
+//         // Locate USB protocol
+//         let mut usb_ptr: *mut core::ffi::c_void = null_mut();
+//         let mut usb_guid = G_USB_EXT_PROTOCOL_GUID;
+//         let status = ((*bs).locate_protocol)(
+//             &mut usb_guid as *mut _,
+//             null_mut(),
+//             &mut usb_ptr as *mut _,
+//         );
+
+//         if status == Status::SUCCESS && !usb_ptr.is_null() {
+//             let usb_protocol = usb_ptr as *mut UsbExtProtocol;
+
+//             let mut usb_event: r_efi::efi::Event = null_mut();
+//             let status = ((*bs).create_event)(
+//                 r_efi::efi::EVT_NOTIFY_SIGNAL,
+//                 r_efi::efi::TPL_CALLBACK,
+//                 Some(on_usb_update),
+//                 usb_ptr,
+//                 &mut usb_event,
+//             );
+
+//             if status == Status::SUCCESS {
+//                 (*usb_protocol).update_event = usb_event;
+//                 ((*bs).signal_event)(usb_event);
+//                 uart_debug::log("USB protocol registered.");
+//             } else {
+//                 uart_debug::log("Failed to create USB event.");
+//             }
+//         } else {
+//             uart_debug::log("USB protocol not found.");
+//         }
+//                 Status::SUCCESS.as_usize() as u64
+//             }
+//         }
