@@ -530,39 +530,6 @@ pub extern "efiapi" fn efi_main(
         // Create timer event
         uart_debug::log("Effort to start timer event.");
 
-        // TEST BOX -----------------------------------------------------------------------------------------------------------------------
-        // let mut event: *mut core::ffi::c_void = null_mut();
-        // let status = ((*bs).create_event)(
-        //     r_efi::efi::EVT_TIMER | r_efi::efi::EVT_NOTIFY_SIGNAL,
-        //     r_efi::efi::TPL_CALLBACK,
-        //     Some(poll_keys),
-        //     null_mut(),
-        //     &mut event as *mut _,
-        // );
-
-        // if status != Status::SUCCESS {
-        //     uart_debug::log("Failed to create timer event.");
-        //     uart_debug::log("Failed to create timer event."); // Status = 0x{:X}", status.as_usize());
-        //     return status.as_usize() as u64;
-        // }
-
-        // uart_debug::log("Successfully set the timer event.");
-        // // Set timer to fire every 0.5 seconds
-        // let status = ((*bs).set_timer)(
-        //     event,
-        //     TIMER_RELATIVE,
-        //     500_000, // 0.5 seconds in 100ns units
-        // );
-
-        // uart_debug::log("Successfully set the timer event after every 0.5 secs");
-        // if status != Status::SUCCESS {
-        //     uart_debug::log("Failed to set timer.");
-        //     return status.as_usize() as u64;
-        // }
-
-        // uart_debug::log("Polling for F4 key every 0.5s. Shell remains active.");
-
-        // TEST BOX ------------------------------------------------------------------------------------------------------------------
 
         // Register key event using WaitForKey
         let con_in = (*system_table).con_in;
@@ -581,8 +548,6 @@ pub extern "efiapi" fn efi_main(
         }
         uart_debug::log("Registered WaitForKey event. Shell remains active.");
 
-
-        // TEST BOX -----------------------------------------------------------------------------------------------------------------------
         // Locate USB protocol
         let mut usb_ptr: *mut core::ffi::c_void = null_mut();
         let mut usb_guid = G_USB_EXT_PROTOCOL_GUID;
