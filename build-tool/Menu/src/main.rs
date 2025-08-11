@@ -495,7 +495,6 @@ pub extern "efiapi" fn efi_main(
 
         if status == Status::SUCCESS && !usb_ptr.is_null() {
             let usb_protocol = usb_ptr as *mut UsbExtProtocol;
-
             let mut usb_event: r_efi::efi::Event = core::ptr::null_mut();
             let status = ((*bs).create_event)(
                 r_efi::efi::EVT_NOTIFY_SIGNAL,
@@ -516,19 +515,13 @@ pub extern "efiapi" fn efi_main(
             uart_debug::log("USB protocol not found.");
         }
 
-        // Wait for key input using UEFI event
+        // Wait for key input once
         let wait_event = (*CON_IN).wait_for_key;
+        let mut index: usize = 0;
+        let mut events: [r_efi::efi::Event; 1] = [wait_event];
+        let status = ((*bs).wait_for_event)(1, events.as_mut_ptr(), &mut index);
 
-        loop {
-            let mut index: usize = 0;
-            let mut events: [r_efi::efi::Event; 1] = [wait_event];
-            let status = ((*bs).wait_for_event)(1, events.as_mut_ptr(), &mut index);
-
-            if status != Status::SUCCESS {
-                uart_debug::log("Failed to wait for key event.");
-                continue;
-            }
-
+        if status == Status::SUCCESS {
             let mut key: InputKey = core::mem::zeroed();
             let status = ((*CON_IN).read_key_stroke)(CON_IN, &mut key);
             if status == Status::SUCCESS && (key.scan_code & 0xFF) == SCAN_F4 {
@@ -538,16 +531,15 @@ pub extern "efiapi" fn efi_main(
                 let fb = mode.frame_buffer_base as *mut u32;
                 let ppsl = info.pixels_per_scan_line;
 
-                if BOX_VISIBLE {
-                    clear_box(fb, ppsl);
-                } else {
-                    draw_box(fb, ppsl);
-                }
-                BOX_VISIBLE = !BOX_VISIBLE;
+                draw_box(fb, ppsl);
             }
         }
+
+        // Exit cleanly
+        return Status::SUCCESS.as_usize() as u64;
     }
 }
+
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
