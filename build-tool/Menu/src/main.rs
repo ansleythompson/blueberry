@@ -16,16 +16,14 @@ use alloc::string::String;
 use alloc::string::ToString;
 mod uart_debug;
 use r_efi::protocols::graphics_output;
-use alloc::vec::Vec; // Vecor functionality
-
+use alloc::vec::Vec;
 
 // global varibales to store USB information. Static: Entire life of a program.
 static mut USB_MANUFACTURER: Option<String> = None;
 static mut USB_PRODUCT: Option<String> = None;
 static mut USB_SERIAL: Option<String> = None;
 static USB_UPDATED: AtomicBool = AtomicBool::new(false);
-static mut USB_DEV_INFO_VEC: Option<Vec<DellUsbDevInfo>> = None;  // Vecor functionality
-
+static mut USB_DEV_INFO_VEC: Option<Vec<DellUsbDevInfo>> =  core::prelude::v1::Some(Vec::new());
 
 // newly added variables or info hat we can print on blue screen (Take advise from MO & AS)
 static mut USB_VENDOR_ID: u16 = 0;
@@ -58,7 +56,6 @@ pub struct PortInfo {
     pub bus: u32,
 }
 
-
 #[derive(Clone)]
 #[repr(C)]
 pub struct UsbDeviceDescriptor {
@@ -78,7 +75,6 @@ pub struct UsbDeviceDescriptor {
     pub num_configurations: u8,
 }
 
-
 #[derive(Clone)]
 #[repr(C)]
 pub struct UsbInterfaceDescriptor {
@@ -92,7 +88,6 @@ pub struct UsbInterfaceDescriptor {
     pub interface_protocol: u8,
     pub interface: u8,
 }
-
 
 #[derive(Clone)]
 #[repr(C)]
@@ -177,10 +172,11 @@ extern "efiapi" fn on_usb_update(_event: r_efi::efi::Event, context: *mut core::
             USB_SERIAL = Some(utf16_cstr_to_string(&(*protocol).usb_dev_info.serial_number));
             USB_UPDATED.store(true, Ordering::SeqCst);
 
-            if USB_DEV_INFO_VEC.is_none() {
+            if USB_DEV_INFO_VEC.is_none(){
                 USB_DEV_INFO_VEC = Some(Vec::new());
             }
-            if let Some(vec) = USB_DEV_INFO_VEC.as_mut() {
+
+            if let Some(vec) = USB_DEV_INFO_VEC.as_mut(){
                 vec.push((*protocol).usb_dev_info.clone());
             }
 
@@ -200,6 +196,21 @@ extern "efiapi" fn on_usb_update(_event: r_efi::efi::Event, context: *mut core::
             USB_INTERFACE = port_info.interface;
 
             uart_debug::log("USB updated");
+
+        //     debugln!(
+        //         "USB updated: Manufacturer: {}, Product: {}, Serial Number: {}",
+        //         USB_MANUFACTURER.as_deref().unwrap_or(""),
+        //         USB_PRODUCT.as_deref().unwrap_or(""),
+        //         USB_SERIAL.as_deref().unwrap_or("")
+        //     );
+        //     debugln!(
+        //         "USB Descriptor: Vendor {:04X}, Product {:04X}, Class {:02X}, Subclass {:02X}",
+        //         USB_VENDOR_ID, USB_PRODUCT_ID, USB_CLASS, USB_SUBCLASS
+        // );
+        //     debugln!(
+        //         "Port Info: Bus {}, Device {}, Port {}, Interface {}",
+        //         USB_BUS, USB_DEVICE, USB_PORT, USB_INTERFACE
+        // );
 
         }
 }
@@ -229,6 +240,8 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
         // uart_debug::log("1 Key pressed"); //ScanCode = 0x{:X}", key.scan_code);
         if (key.scan_code & 0xFF) == SCAN_F4 {
+        // if key.scan_code == SCAN_F4 {
+        // uart_debug::log("2 Key pressed: ScanCode");// = 0x{:X}", key.scan_code);
 
             let gop = &mut *gop_ptr;
             let mode = &*gop.mode;
@@ -249,7 +262,15 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
 
 fn draw_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
-    for y in 100..250 {
+    // ------TEST----
+    let device_coun = unsafe {USB_DEV_INFO_VEC.as_ref().map_or(1, |v| v.len()) };
+    let device_count = device_coun - 3;
+    let line_height = 170 ;
+    let box_height = device_count * line_height + 45;
+    for y in 100..box_height{
+
+    // ----TEST END -----
+    // for y in 100..1000 {
         for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as usize;
             unsafe {
@@ -259,40 +280,51 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
         }
     }
 
-let text = unsafe {
-    if let Some(vec) = USB_DEV_INFO_VEC.as_ref() {
-        let mut all_info = String::from("USB Devices:\n");
-        for (i, dev_info) in vec.iter().enumerate() {
-            let manufacturer = utf16_cstr_to_string(&dev_info.manufacturer);
-            let product = utf16_cstr_to_string(&dev_info.product);
-            let serial = utf16_cstr_to_string(&dev_info.serial_number);
-            let dev_desc = &dev_info.device_descriptor;
-            let port_info = &dev_info.port_info;
-            let info = format!(
-                "Device {}:\nManufacturer: {}\nProduct: {}\nSerial: {}\nVendor ID: {:04X}, Product ID: {:04X}, Class: {:02X}, Subclass: {:02X}\nBus: {}, Device: {}, Port: {}, Interface: {}\n\n",
-                i + 1,
-                manufacturer,
-                product,
-                serial,
-                dev_desc.id_vendor,
-                dev_desc.id_product,
-                dev_desc.device_class,
-                dev_desc.device_sub_class,
-                port_info.bus,
-                port_info.device,
-                port_info.port,
-                port_info.interface
-            );
-            all_info.push_str(&info);
+    // Prepare the text to display
+    let text = unsafe {
+        if let Some(vec) = USB_DEV_INFO_VEC.as_ref(){
+            let mut all_info = String::from("USB Devices:\n");
+            for (i, dev_info) in vec.iter().enumerate()
+            {
+                if i >= 3 {
+
+                let manufacturer = utf16_cstr_to_string(&dev_info.manufacturer);
+                let product = utf16_cstr_to_string(&dev_info.product);
+                let serial = utf16_cstr_to_string(&dev_info.serial_number);
+                let dev_desc = &dev_info.device_descriptor;
+                let port_info = &dev_info.port_info;
+        let info = format!(
+                    "Device {}:\n\
+                    Manufacturer: {}\n\
+                    Product: {}\n\
+                    Serial Number: {}\n\
+                    Vendor ID: {:04X}, Product ID: {:04X}, Class: {:02X}\n\
+                    Subclass: {:02X}, Bus: {}, Device: {}\n\
+                    Port: {}, Interface: {}\n\n",
+                    i+1-3,
+                    manufacturer,
+                    product,
+                    serial,
+                    dev_desc.id_vendor,
+                    dev_desc.id_product,
+                    dev_desc.device_class,
+                    dev_desc.device_sub_class,
+                    port_info.bus,
+                    port_info.device,
+                    port_info.port,
+                    port_info.interface
+                );
+                all_info.push_str(&info);}
+
+            }
+            all_info
+        } else {
+            "Waiting for USB...".to_string()
         }
-        all_info
-    } else {
-        "Waiting for USB...".to_string()
-    }
-};
+    };
 
     // Draw the text inside the box
-    draw_text(fb, ppsl, 120, 120, 0x00FFFFFF, &text); // White text
+    draw_text(fb, ppsl, 120, 120, 0xFFFFFFFF, &text); // White text
     unsafe {
         uart_debug::log("Blue box drawn with dynamic USB data.");
     }
@@ -311,7 +343,7 @@ fn clear_box(fb: *mut u32, ppsl: u32) {
 
     // for y in box_y..(box_y + box_height) {
     //     for x in box_x..(box_x + box_width) {
-    for y in 100..250 {
+    for y in 100..1000 {
         for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as isize;
             unsafe {
@@ -443,7 +475,8 @@ unsafe fn draw_blue_box_with_text(
     
     // Blue color (BGRA format for most UEFI systems)
     let blue_color = 0xFF0000FF; // Blue with full alpha
-
+    // let white_color = 0xFFFFFFFF; // White for text background
+    
     // Draw blue box
     for y in box_y..(box_y + box_height) {
         for x in box_x..(box_x + box_width) {
