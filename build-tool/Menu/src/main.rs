@@ -197,21 +197,6 @@ extern "efiapi" fn on_usb_update(_event: r_efi::efi::Event, context: *mut core::
 
             uart_debug::log("USB updated");
 
-        //     debugln!(
-        //         "USB updated: Manufacturer: {}, Product: {}, Serial Number: {}",
-        //         USB_MANUFACTURER.as_deref().unwrap_or(""),
-        //         USB_PRODUCT.as_deref().unwrap_or(""),
-        //         USB_SERIAL.as_deref().unwrap_or("")
-        //     );
-        //     debugln!(
-        //         "USB Descriptor: Vendor {:04X}, Product {:04X}, Class {:02X}, Subclass {:02X}",
-        //         USB_VENDOR_ID, USB_PRODUCT_ID, USB_CLASS, USB_SUBCLASS
-        // );
-        //     debugln!(
-        //         "Port Info: Bus {}, Device {}, Port {}, Interface {}",
-        //         USB_BUS, USB_DEVICE, USB_PORT, USB_INTERFACE
-        // );
-
         }
 }
 
@@ -239,10 +224,10 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
         }
 
         // uart_debug::log("1 Key pressed"); //ScanCode = 0x{:X}", key.scan_code);
-        if (key.scan_code & 0xFF) == SCAN_F4 {
+        if (key.scan_code & 0xFF) != SCAN_F4 {
         // if key.scan_code == SCAN_F4 {
         // uart_debug::log("2 Key pressed: ScanCode");// = 0x{:X}", key.scan_code);
-
+            return ;}
             let gop = &mut *gop_ptr;
             let mode = &*gop.mode;
             let info = &*mode.info;
@@ -256,7 +241,7 @@ extern "efiapi" fn poll_keys(_event: *mut core::ffi::c_void, _context: *mut core
             }
 
             BOX_VISIBLE = !BOX_VISIBLE;
-        }
+        // }
     }
 }
 
@@ -333,16 +318,6 @@ fn draw_box(fb: *mut u32, ppsl: u32) {
 fn clear_box(fb: *mut u32, ppsl: u32) {
     // Draw the blue box background
     let mode_info = unsafe { &*(*(*gop_ptr).mode).info };
-
-    // let width = mode_info.horizontal_resolution as usize;
-    // let height = mode_info.vertical_resolution as usize;
-    // let box_width = 800; // 100..250, 100..600
-    // let box_height = 400;
-    // let box_x = (width - box_width) / 2;
-    // let box_y = (height - box_height) / 2;
-
-    // for y in box_y..(box_y + box_height) {
-    //     for x in box_x..(box_x + box_width) {
     for y in 100..1000 {
         for x in 100..600 {
             let idx = (y as usize * ppsl as usize + x as usize) as isize;
@@ -533,7 +508,6 @@ pub extern "efiapi" fn efi_main(
 
         // Register key event using WaitForKey
         let con_in = (*system_table).con_in;
-        let wait_event = (*con_in).wait_for_key;
 
         let status = ((*bs).create_event)(
             r_efi::efi::EVT_NOTIFY_WAIT,
@@ -542,6 +516,8 @@ pub extern "efiapi" fn efi_main(
             null_mut(),
             &mut (*con_in).wait_for_key as *mut _,
         );
+
+
         if status != Status::SUCCESS {
             uart_debug::log("Failed to register WaitForKey event.");
             return status.as_usize() as u64;
@@ -591,110 +567,3 @@ fn panic(_info: &PanicInfo) -> ! {
 
 
 
-
-
-
-
-// #[no_mangle]
-// pub extern "efiapi" fn efi_main(
-//     _image_handle: *const core::ffi::c_void,
-//     system_table: *const SystemTable,
-// ) -> u64 {
-//     unsafe {
-//         let bs = (*system_table).boot_services;
-//         rust_boot_services_allocator_dxe::GLOBAL_ALLOCATOR.init(bs);
-
-//         uart_debug::log("Driver loaded and running in background.");
-
-//         // Locate GOP
-//         let mut gop_guid = graphics_output::PROTOCOL_GUID;
-//         // let mut gop_ptr: *mut core::ffi::c_void = ptr::null_mut();
-//         let status = ((*bs).locate_protocol)(
-//             &mut gop_guid as *mut _,
-//             null_mut(),
-//             // &mut gop_ptr as *mut _,
-//             &mut gop_ptr as *mut _ as *mut *mut core::ffi::c_void,
-//         );
-
-//         if status != Status::SUCCESS || gop_ptr.is_null() {
-//             uart_debug::log("Failed to locate GOP.");
-//             return Status::NOT_FOUND.as_usize() as u64;
-//         }
-        
-//         uart_debug::log("Successfully located GOP. ");
-//         // Set global variables as poll keys can use them
-
-//         gop_ptr = &mut *gop_ptr;
-//         // Get current mode info
-//         let mode = &*(*gop_ptr).mode;
-//         let mode_info = &*mode.info;
-//         // let _ = draw_blue_box_with_text(gop_ptr, mode_info);
-//         CON_IN = (*system_table).con_in;
-
-
-//         // Create timer event
-//         uart_debug::log("Effort to start timer event.");
-//         let mut event: *mut core::ffi::c_void = null_mut();
-//         let status = ((*bs).create_event)(
-//             r_efi::efi::EVT_TIMER | r_efi::efi::EVT_NOTIFY_SIGNAL,
-//             r_efi::efi::TPL_CALLBACK,
-//             Some(poll_keys),
-//             null_mut(),
-//             &mut event as *mut _,
-//         );
-
-//         if status != Status::SUCCESS {
-//             uart_debug::log("Failed to create timer event.");
-//             uart_debug::log("Failed to create timer event."); // Status = 0x{:X}", status.as_usize());
-//             return status.as_usize() as u64;
-//         }
-
-//         uart_debug::log("Successfully set the timer event.");
-//         // Set timer to fire every 0.5 seconds
-//         let status = ((*bs).set_timer)(
-//             event,
-//             TIMER_RELATIVE,
-//             500_000, // 0.5 seconds in 100ns units
-//         );
-
-//         uart_debug::log("Successfully set the timer event after every 0.5 secs");
-//         if status != Status::SUCCESS {
-//             uart_debug::log("Failed to set timer.");
-//             return status.as_usize() as u64;
-//         }
-
-//         uart_debug::log("Polling for F4 key every 0.5s. Shell remains active.");
-//         // Locate USB protocol
-//         let mut usb_ptr: *mut core::ffi::c_void = null_mut();
-//         let mut usb_guid = G_USB_EXT_PROTOCOL_GUID;
-//         let status = ((*bs).locate_protocol)(
-//             &mut usb_guid as *mut _,
-//             null_mut(),
-//             &mut usb_ptr as *mut _,
-//         );
-
-//         if status == Status::SUCCESS && !usb_ptr.is_null() {
-//             let usb_protocol = usb_ptr as *mut UsbExtProtocol;
-
-//             let mut usb_event: r_efi::efi::Event = null_mut();
-//             let status = ((*bs).create_event)(
-//                 r_efi::efi::EVT_NOTIFY_SIGNAL,
-//                 r_efi::efi::TPL_CALLBACK,
-//                 Some(on_usb_update),
-//                 usb_ptr,
-//                 &mut usb_event,
-//             );
-
-//             if status == Status::SUCCESS {
-//                 (*usb_protocol).update_event = usb_event;
-//                 ((*bs).signal_event)(usb_event);
-//                 uart_debug::log("USB protocol registered.");
-//             } else {
-//                 uart_debug::log("Failed to create USB event.");
-//             }
-//         } else {
-//             uart_debug::log("USB protocol not found.");
-//         }
-//                 Status::SUCCESS.as_usize() as u64
-//             }
-//         }
